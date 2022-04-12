@@ -1,5 +1,7 @@
+import datetime
+from unittest import loader
 from django.shortcuts import get_object_or_404, render,redirect,HttpResponse
-from .models import Articles,Comments, Likes
+from .models import Articles,Comments, Likes, Notification
 from django.views.generic import ListView, DetailView,CreateView, UpdateView,DeleteView
 from django.views.generic.edit import FormMixin
 from .forms import ArticleForm, AuthUserForm, RegisterUserForm,CommentForm
@@ -19,12 +21,14 @@ from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 from django.db.models import Q
 from django.core.mail import BadHeaderError, send_mail
+from django.utils import timezone
 
 
 class HomeListView(ListView):
     model = Articles
     template_name = 'index.html'
     context_object_name = 'list_articles'
+    
 
 
 # class LoginRequiredMixin(AccessMixin):
@@ -69,6 +73,13 @@ class HomeDetailView(CustomSuccessMessageMixin, FormMixin, DetailView):
         self.object.article = self.get_object()
         self.object.author = self.request.user
         self.object.save()
+        notification = Notification.objects.create(notification_type=2, 
+                                                   user_to = self.object.article.author, 
+                                                   user_from = self.object.author,
+                                                   post = self.object.article,
+                                                   comment = self.object,
+                                                   date = timezone.now())
+        notification.save()
         return super().form_valid(form)
     
 def search(request):
@@ -86,6 +97,8 @@ def like(request, pk):
   
     user = request.user
     post = Articles.objects.get(id=pk)
+    post_owner = post.author
+    notification_type = 1
     current_likes = post.likes 
     liked = Likes.objects.filter(user=user, post=post)
     
@@ -94,8 +107,20 @@ def like(request, pk):
         like = Likes.objects.create(user=user, post=post)
         like.save()
         current_likes = current_likes + 1 
+        notification = Notification.objects.create(notification_type=notification_type, 
+                                                   user_to = post_owner,
+                                                   user_from=user,
+                                                   post=post,
+                                                   likes=like,
+                                                   date = timezone.now())
+        notification.save()
+        
     else:
         Likes.objects.filter(user=user, post=post).delete()
+        Notification.objects.filter(notification_type=notification_type, 
+                                                   user_to = post_owner,
+                                                   user_from=user,
+                                                   post=post).delete()
         current_likes = current_likes - 1
     
     
