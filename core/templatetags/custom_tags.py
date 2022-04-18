@@ -19,3 +19,12 @@ def total_unread_notifs(r_user):
     total = Notification.objects.filter(user_to=user, user_has_seen=False).count()
     return total
 
+@register.simple_tag
+def notif_seen(r_user):
+    user = r_user
+    unseen = Notification.objects.filter(user_to=user, user_has_seen=False)
+    for i in unseen:
+        i.update(user_has_seen = True)
+        total_unread_notifs(r_user)
+        
+
