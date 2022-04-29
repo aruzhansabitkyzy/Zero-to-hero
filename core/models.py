@@ -34,7 +34,19 @@ class Comments(models.Model):
     create_date = models.DateTimeField(auto_now=True)
     text = models.TextField(verbose_name='Text comment')
     status = models.BooleanField(verbose_name='Post Visibility', default=False)
-    # objects  = StatusFilterComments() 
+    # parent = models.ForeignKey('self' , null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
+    
+    
+    # @property
+    # def children(self):
+    #     return Comments.objects.filter(parent=self).reverse()
+    
+    # @property 
+    # def is_parent(self):
+    #     if self.parent is None: 
+    #         return True
+    #     return False
+    
     
     
 class Notification(models.Model):

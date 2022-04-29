@@ -1,6 +1,9 @@
 import datetime
+from http.client import HTTPResponse
 from unittest import loader
+from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404, render,redirect,HttpResponse
+from django.views import View
 from .models import Articles,Comments, Likes, Notification
 from django.views.generic import ListView, DetailView,CreateView, UpdateView,DeleteView
 from django.views.generic.edit import FormMixin
@@ -11,7 +14,7 @@ from django.contrib.auth.views import LoginView,LogoutView
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.template import Context, Template
 from django.contrib.auth.forms import PasswordResetForm
@@ -92,6 +95,8 @@ def search(request):
         results = Articles.objects.all()
     return render(request, "search_results.html", {'list_articles': results})
     
+
+
 @login_required
 def like(request, pk):
   
@@ -113,6 +118,7 @@ def like(request, pk):
                                                    post=post,
                                                    likes=like,
                                                    date = timezone.now())
+        
         notification.save()
         
     else:
@@ -261,3 +267,29 @@ class ArticleDeleteView(LoginRequiredMixin, DeleteView):
         success_url = self.get_success_url()
         self.object.delete()
         return HttpResponseRedirect(success_url)
+
+
+class JsonList(View): 
+    def get(self, *args, **kwargs):
+        notifs = list(Notification.objects.filter(user=self.request.user))
+        return JsonResponse(self, {'data' : notifs}, safe=False)
+    
+@method_decorator(login_required, name='dispatch')
+class NotificationCheck(View):
+    def get(self, request):
+        return HttpResponse(Notification.objects.filter(user_has_seen = False, user_to=request.user).count()) 
+    
+class CommentReplyView(LoginRequiredMixin, View):
+    def post(self, request, article_pk, pk, *args, **kwargs):
+        article = Articles.objects.filter(pk=pk)
+        parent_comment = article.parent
+        form = CommentForm()
+        
+        if form.is_valid:
+            new_comment = form.save(commit=False)
+            new_comment.parent = parent_comment
+            new_comment.article = article 
+            new_comment.author = request.user
+            new_comment.save()
+        
+        return redirect('detail_page', article_pk)

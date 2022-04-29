@@ -14,6 +14,9 @@ urlpatterns = [
     path('password_reset/' , views.password_reset_form, name='password_reset'),
     path('search/', views.search, name='search'), 
     path('like/<int:pk>', views.like, name='likes'),
+    path('notifs_json', views.JsonList.as_view(), name='json_notif_lists'),
+    path('ajax_notification/', views.NotificationCheck.as_view(), name='ajax_notification'),
+    path('detail/<int:article_pk>/comment/<int:pk>/reply', views.CommentReplyView.as_view(), name='comment_reply'),
     #ajax
     path('update_comment_status/<int:pk>/<slug:type>', views.update_comment_status, name='update_comment_status')
 ]
